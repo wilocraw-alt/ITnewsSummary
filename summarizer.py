@@ -55,13 +55,14 @@ def _llm_call(client_type, client, prompt, model, expect_json=True):
 def cluster_items(items, client_type, client, model):
     lines = "\n".join(f"{i}. [{item['source']}] {item['title']}" for i, item in enumerate(items))
     prompt = f"""Group the following news items by topic. Items on the same topic (e.g. same model release, same company news) should be in one group.
+The group "topic" MUST be concrete and include specific entity names (e.g., "GPT-4o mini 출시" instead of "신규모델 출시").
 Return a JSON array of groups. Each group has: "topic" (Korean topic name), "indices" (array of item numbers, 0-based).
 
 Items:
 {lines}
 
 Return ONLY valid JSON array:
-[{{"topic": "주제명", "indices": [0, 1, 2]}}]"""
+[{{"topic": "구체적인 주제명 (모델/기업/제품명 포함)", "indices": [0, 1, 2]}}]"""
 
     text = _llm_call(client_type, client, prompt, model, expect_json=False)
     groups = extract_json_array(text)
@@ -88,9 +89,15 @@ Topic: %s
 Items:
 %s
 
+### Requirements:
+1. Every summary MUST name concrete subjects: exact model names/versions (e.g. "GPT-4o", "Claude 3.5 Sonnet"), company names, product names, subscription prices (e.g. "$20/월"), benchmark scores, and specific dates.
+2. Numbers and proper nouns from the source text take priority over abstractions.
+3. FORBID generic filler. Avoid sentences like "AI 기술이 발전하고 있다" or "경쟁이 치열해지고 있다" unless tied to a specific named subject.
+4. "topic_ko" must contain the key entity name (model/company/product).
+
 Output a JSON object with:
-- "topic_ko": topic name translated to Korean
-- "cluster_summary": 2-3 sentence Korean summary of the group
+- "topic_ko": concrete Korean topic name (include key entities)
+- "cluster_summary": 2-3 sentence concrete Korean summary
 - "impact": "HIGH", "MED", or "LOW"
 - "category": "pricing" if any item is about pricing, "policy" if any is about policy, otherwise "release"
 - "members": array of {"source": source name, "title_ko": Korean translated title, "title_en": original English title, "source_url": URL}
