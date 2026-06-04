@@ -54,19 +54,28 @@ def step_summarize(raw_items: list[dict], config: dict, out: Path) -> list[dict]
 
 def step_format(items: list[dict], period: str, date: datetime, out: Path) -> Path:
     md_path = out / f"{period}.md"
-    if md_path.exists():
-        print(f"[main] format: using existing {md_path}")
-        return md_path
+    html_path = out / f"{period}.html"
 
     try:
-        from formatter import format_markdown
-        content = format_markdown(items, period, date)
-    except ImportError:
-        print("[main] formatter.py not found — generating minimal Markdown", file=sys.stderr)
-        content = _minimal_markdown(items, period, date)
+        from formatter import format_markdown, format_html
+        md_content = format_markdown(items, period, date)
 
-    md_path.write_text(content, encoding="utf-8")
-    print(f"[main] format: wrote {md_path}")
+        if not md_path.exists():
+            md_path.write_text(md_content, encoding="utf-8")
+            print(f"[main] format: wrote {md_path}")
+
+        html_content = format_html(items, period, date)
+        if not html_path.exists():
+            html_path.write_text(html_content, encoding="utf-8")
+            print(f"[main] format: wrote {html_path}")
+    except ImportError:
+        if not md_path.exists():
+            content = _minimal_markdown(items, period, date)
+            md_path.write_text(content, encoding="utf-8")
+            print(f"[main] format: wrote {md_path}")
+        elif not html_path.exists():
+            print("[main] format: skipping HTML (formatter not available)", file=sys.stderr)
+
     return md_path
 
 

@@ -132,5 +132,11 @@ def format_markdown(clusters: list[dict], period: str, date: datetime) -> str:
     date_str = date.strftime("%Y-%m-%d")
     return generate_markdown(date_str, sections)
 
+def format_html(clusters: list[dict], period: str, date: datetime) -> str:
+    sections = organize_clusters(clusters)
+    date_str = date.strftime("%Y-%m-%d")
+    template = Template(HTML_TEMPLATE)
+    return template.render(date_str=date_str, sections=sections)
+
 if __name__ == "__main__":
     main()
