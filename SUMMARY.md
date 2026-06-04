@@ -53,3 +53,31 @@ ITnewsSummary/
 - **Before**: 40 items × 1 call = 40 calls, ~10-15s each
 - **After**: 1 clustering call + 1 translation/summary call = **2 calls total**
 - **Savings**: ~95% fewer API calls, ~98% time reduction
+
+## Quick Start
+
+```bash
+# Run morning digest
+./run.sh morning
+
+# Run evening digest
+./run.sh evening
+
+# Auto-detect period (morning before 14:00, evening after)
+./run.sh
+```
+
+The script sources `.env`, defaults to local Ollama (gemma4:e4b), and runs the full pipeline.
+
+## Environment
+
+| Variable | Default | Description |
+|---|---|---|
+| `OPENAI_BASE_URL` | `http://localhost:11435/v1` | Ollama / OpenAI-compatible endpoint |
+| `OPENAI_API_KEY` | `ollama` | API key |
+| `LLM_MODEL` | `gemma4:e4b` | Model name |
+| `SMTP_HOST` | `smtp.gmail.com` | SMTP server |
+| `SMTP_PORT` | `587` | SMTP port (STARTTLS) |
+| `SMTP_USER` | — | SMTP login |
+| `SMTP_PASSWORD` | — | SMTP password or app password |
+| `EMAIL_RECIPIENTS` | — | Comma-separated recipient list |
