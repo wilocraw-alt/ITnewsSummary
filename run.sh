@@ -54,4 +54,15 @@ if [ -z "$PERIOD" ]; then
 fi
 
 echo "=== ITnewsSummary :: $PERIOD ==="
-exec python3 main.py "$PERIOD" "${@:2}"
+RC=0
+python3 main.py "$PERIOD" "${@:2}" || RC=$?
+
+if [ $RC -eq 0 ]; then
+    TODAY="$(date +%Y-%m-%d)"
+    HTML_FILE="output/$TODAY/$PERIOD.html"
+    if [ -f "$HTML_FILE" ]; then
+        bash scripts/open_html.sh "$HTML_FILE"
+    fi
+fi
+
+exit $RC

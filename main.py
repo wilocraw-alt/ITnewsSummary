@@ -125,16 +125,36 @@ def step_send(md_path: Path, period: str, date: datetime) -> None:
     )
 
 
+def _clear_cache(out: Path) -> None:
+    if os.environ.get("KEEP_CACHE") == "1":
+        print("[main] cache: KEEP_CACHE=1 — preserving cache files")
+        return
+    removed = False
+    for name in ("raw_items.json", "summarized_items.json"):
+        p = out / name
+        if p.exists():
+            p.unlink()
+            print(f"[main] cache: cleared {p}")
+            removed = True
+    if not removed:
+        print("[main] cache: nothing to clear")
+
+
 def run(period: str, config: dict, date: datetime, sources_dir: str, output_base: str) -> Path:
     out = _output_dir(output_base, date)
     print(f"[main] === {period.upper()} run | {date.strftime('%Y-%m-%d')} | output: {out} ===")
 
-    raw_items = step_collect(sources_dir, out)
-    summ_items = step_summarize(raw_items, config, out)
-    md_path = step_format(summ_items, period, date, out)
-    step_archive(summ_items, period, date, out)
-    step_send(md_path, period, date)
+    try:
+        raw_items = step_collect(sources_dir, out)
+        summ_items = step_summarize(raw_items, config, out)
+        md_path = step_format(summ_items, period, date, out)
+        step_archive(summ_items, period, date, out)
+        step_send(md_path, period, date)
+    except BaseException:
+        print("[main] ERROR: run failed — cache preserved for debugging", file=sys.stderr)
+        raise
 
+    _clear_cache(out)
     print(f"[main] Done. Output directory: {out}/")
     return out
 
