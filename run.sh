@@ -7,15 +7,38 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Load .env (secrets, model config)
+# Detect available Ollama endpoint: prefer local Linux (11435), fallback to Windows (11434)
+if command -v curl &>/dev/null; then
+    if curl -s -o /dev/null --connect-timeout 2 http://localhost:11435 2>/dev/null; then
+        OLLAMA_BASE="http://localhost:11435"
+    else
+        OLLAMA_BASE="http://localhost:11434"
+    fi
+elif command -v wget &>/dev/null; then
+    if wget -q --spider --timeout=2 http://localhost:11435 2>/dev/null; then
+        OLLAMA_BASE="http://localhost:11435"
+    else
+        OLLAMA_BASE="http://localhost:11434"
+    fi
+else
+    # fallback: bash /dev/tcp check
+    if { exec 3<>/dev/tcp/localhost/11435; } 2>/dev/null; then
+        exec 3<&- 3>&-
+        OLLAMA_BASE="http://localhost:11435"
+    else
+        OLLAMA_BASE="http://localhost:11434"
+    fi
+fi
+
+# Load .env (secrets, model config) — will be overridden by auto-detect below
 if [ -f .env ]; then
     set -a
     . .env
     set +a
 fi
 
-# Defaults for local Ollama
-export OPENAI_BASE_URL="${OPENAI_BASE_URL:-http://localhost:11435/v1}"
+# Override with detected Ollama URL; keep other vars from .env
+export OPENAI_BASE_URL="${OLLAMA_BASE}/v1"
 export OPENAI_API_KEY="${OPENAI_API_KEY:-ollama}"
 export LLM_MODEL="${LLM_MODEL:-gemma4:e4b}"
 

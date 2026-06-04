@@ -73,7 +73,7 @@ The script sources `.env`, defaults to local Ollama (gemma4:e4b), and runs the f
 
 | Variable | Default | Description |
 |---|---|---|
-| `OPENAI_BASE_URL` | `http://localhost:11435/v1` | Ollama / OpenAI-compatible endpoint |
+| `OPENAI_BASE_URL` | *auto-detected* | `run.sh` probes `localhost:11435` first, falls back to `11434` |
 | `OPENAI_API_KEY` | `ollama` | API key |
 | `LLM_MODEL` | `gemma4:e4b` | Model name |
 | `SMTP_HOST` | `smtp.gmail.com` | SMTP server |
