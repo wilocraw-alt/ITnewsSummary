@@ -70,62 +70,54 @@ Return ONLY valid JSON array:
         return [{"topic": item.get("title", "")[:40], "indices": [i]} for i, item in enumerate(items)]
     return groups
 
-def translate_and_summarize_all(items, groups, client_type, client, model):
-    group_blocks = []
-    for g in groups:
-        idx = g.get("indices", [])
-        members = [items[i] for i in idx if i < len(items)]
-        if not members:
-            continue
-        lines = []
-        for m in members:
-            snippet = (m.get("content", "") or "")[:150].replace("\n", " ")
-            lines.append("    - [%s](%s): %s" % (m["source"], m.get("source_url",""), m.get("title","")))
-            lines.append("      Content: %s" % snippet)
-        block = "  Group \"%s\" (%d items):\n%s" % (g.get("topic",""), len(members), "\n".join(lines))
-        group_blocks.append(block)
+def _summarize_one_group(items, group, client_type, client, model):
+    idx = group.get("indices", [])
+    members = [items[i] for i in idx if i < len(items)]
+    if not members:
+        return None
+    lines = []
+    for m in members:
+        snippet = (m.get("content", "") or "")[:200].replace("\n", " ")
+        lines.append("  - [%s](%s): %s" % (m["source"], m.get("source_url",""), m.get("title","")))
+        lines.append("    Content: %s" % snippet)
+    member_block = "\n".join(lines)
 
-    all_groups = "\n\n".join(group_blocks)
+    prompt = """You are an AI news analyst. Summarize this group of news items.
 
-    prompt = """You are an AI news analyst. Below are news items grouped by topic.
-
+Topic: %s
+Items:
 %s
 
-For EACH group:
-1. Translate the group topic to Korean
-2. Write a combined Korean summary (2-3 sentences) covering all items in the group
-3. For EACH item, translate its title to Korean
-4. Assign an overall impact per group (HIGH/MED/LOW)
-5. Assign a category per group: "pricing" if any item is about pricing, "policy" if any is about policy, otherwise "release"
+Output a JSON object with:
+- "topic_ko": topic name translated to Korean
+- "cluster_summary": 2-3 sentence Korean summary of the group
+- "impact": "HIGH", "MED", or "LOW"
+- "category": "pricing" if any item is about pricing, "policy" if any is about policy, otherwise "release"
+- "members": array of {"source": source name, "title_ko": Korean translated title, "title_en": original English title, "source_url": URL}
 
-Return ONLY a JSON array (one element per group, in order):
-[
-  {
-    "topic_ko": "한국어 주제명",
-    "cluster_summary": "통합 한국어 요약 (2-3문장)",
-    "impact": "HIGH|MED|LOW",
-    "category": "release|pricing|policy",
-    "members": [
-      {"source": "원래 소스명", "title_ko": "한국어 번역 제목", "title_en": "원문 제목", "source_url": "원본 URL"}
-    ]
-  }
-]""" % all_groups
+Return ONLY valid JSON:
+{"topic_ko": "...", "cluster_summary": "...", "impact": "HIGH|MED|LOW", "category": "...", "members": [...]}""" % (
+        group.get("topic", ""), member_block)
 
     text = _llm_call(client_type, client, prompt, model, expect_json=False)
-    clusters = extract_json_array(text)
-    if not clusters:
-        print("translate+summarize: LLM returned nothing, building fallback")
-        clusters = []
-        for g in groups:
-            idx = g.get("indices", [])
-            members = [items[i] for i in idx if i < len(items)]
-            clusters.append({
-                "topic_ko": g.get("topic", ""),
-                "cluster_summary": "요약 실패",
-                "impact": "LOW",
-                "category": "release",
-                "members": [{"source": m["source"], "title_ko": m.get("title",""), "title_en": m.get("title",""), "source_url": m.get("source_url","")} for m in members]
-            })
+    result = extract_json(text)
+    if result:
+        return result
+    print("  _summarize_one_group: LLM returned invalid JSON for '%s', using fallback" % group.get("topic",""))
+    return {
+        "topic_ko": group.get("topic", ""),
+        "cluster_summary": "요약 실패",
+        "impact": "LOW",
+        "category": "release",
+        "members": [{"source": m["source"], "title_ko": m.get("title",""), "title_en": m.get("title",""), "source_url": m.get("source_url","")} for m in members]
+    }
+
+def translate_and_summarize_all(items, groups, client_type, client, model):
+    clusters = []
+    for g in groups:
+        result = _summarize_one_group(items, g, client_type, client, model)
+        if result:
+            clusters.append(result)
     return clusters
 
 def main():
