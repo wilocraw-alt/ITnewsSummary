@@ -74,7 +74,7 @@ HTML_TEMPLATE = """
                     <p class="impact impact-{{ c.impact }}">{{ c.impact }}</p>
                     <div class="sources">
                     {% for m in c.members %}
-                        <span class="source-link">- <a href="{{ m.source_url }}">{{ m.source }}</a>: {{ m.title_ko or m.title }}</span>
+                        <span class="source-link">- <a href="{{ m.source_url }}" target="_blank" rel="noopener noreferrer">{{ m.source }}</a>: {{ m.title_ko or m.title }}</span>
                     {% endfor %}
                     </div>
                 </div>
