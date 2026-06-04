@@ -35,7 +35,7 @@ def generate_markdown(date_str, sections):
             for m in c.get("members", []):
                 src_url = m.get("source_url", "")
                 src_name = m.get("source", "")
-                title = m.get("title", "")
+                title = m.get("title_ko", m.get("title", ""))
                 if src_url:
                     md += f"  - [{src_name}]({src_url}): {title}\n"
                 else:
@@ -74,7 +74,7 @@ HTML_TEMPLATE = """
                     <p class="impact impact-{{ c.impact }}">{{ c.impact }}</p>
                     <div class="sources">
                     {% for m in c.members %}
-                        <span class="source-link">- <a href="{{ m.source_url }}">{{ m.source }}</a>: {{ m.title }}</span>
+                        <span class="source-link">- <a href="{{ m.source_url }}">{{ m.source }}</a>: {{ m.title_ko or m.title }}</span>
                     {% endfor %}
                     </div>
                 </div>

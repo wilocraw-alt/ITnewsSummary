@@ -70,46 +70,70 @@ Return ONLY valid JSON array:
         return [{"topic": item.get("title", "")[:40], "indices": [i]} for i, item in enumerate(items)]
     return groups
 
-def summarize_cluster(items, cluster, client_type, client, model):
-    idx = cluster.get("indices", [])
-    members = [items[i] for i in idx if i < len(items)]
-    if not members:
-        return None
+def translate_and_summarize_all(items, groups, client_type, client, model):
+    group_blocks = []
+    for g in groups:
+        idx = g.get("indices", [])
+        members = [items[i] for i in idx if i < len(items)]
+        if not members:
+            continue
+        lines = []
+        for m in members:
+            snippet = (m.get("content", "") or "")[:150].replace("\n", " ")
+            lines.append("    - [%s](%s): %s" % (m["source"], m.get("source_url",""), m.get("title","")))
+            lines.append("      Content: %s" % snippet)
+        block = "  Group \"%s\" (%d items):\n%s" % (g.get("topic",""), len(members), "\n".join(lines))
+        group_blocks.append(block)
 
-    titles = "\n".join(f"- [{m['source']}] {m.get('title', '')}" for m in members)
-    content_snippet = "\n".join(f"- {m.get('content','')[:200]}" for m in members[:3])
+    all_groups = "\n\n".join(group_blocks)
 
-    prompt = f"""You are an AI news analyst. The following news items are all about the same topic: "{cluster.get('topic', '')}".
+    prompt = """You are an AI news analyst. Below are news items grouped by topic.
 
-Titles:
-{titles}
+%s
 
-Content excerpts:
-{content_snippet}
+For EACH group:
+1. Translate the group topic to Korean
+2. Write a combined Korean summary (2-3 sentences) covering all items in the group
+3. For EACH item, translate its title to Korean
+4. Assign an overall impact per group (HIGH/MED/LOW)
+5. Assign a category per group: "pricing" if any item is about pricing, "policy" if any is about policy, otherwise "release"
 
-Write a COMBINED Korean summary that covers ALL these items together in 2-3 sentences. Include the key facts from each source. Then assign an overall impact level (HIGH/MED/LOW).
-Return ONLY:
-{{"cluster_summary": "통합 한국어 요약", "impact": "HIGH|MED|LOW", "topic_ko": "한국어 주제명"}}"""
+Return ONLY a JSON array (one element per group, in order):
+[
+  {
+    "topic_ko": "한국어 주제명",
+    "cluster_summary": "통합 한국어 요약 (2-3문장)",
+    "impact": "HIGH|MED|LOW",
+    "category": "release|pricing|policy",
+    "members": [
+      {"source": "원래 소스명", "title_ko": "한국어 번역 제목", "title_en": "원문 제목", "source_url": "원본 URL"}
+    ]
+  }
+]""" % all_groups
 
-    text = _llm_call(client_type, client, prompt, model)
-    result = extract_json(text)
-    if not result:
-        return {
-            "cluster_summary": "요약 실패",
-            "impact": "LOW",
-            "topic_ko": cluster.get("topic", ""),
-            "members": [{"source": m["source"], "title": m.get("title",""), "source_url": m.get("source_url",""), "source_tier": m.get("source_tier",3)} for m in members]
-        }
-
-    result["members"] = [{"source": m["source"], "title": m.get("title",""), "source_url": m.get("source_url",""), "source_tier": m.get("source_tier",3)} for m in members]
-    return result
+    text = _llm_call(client_type, client, prompt, model, expect_json=False)
+    clusters = extract_json_array(text)
+    if not clusters:
+        print("translate+summarize: LLM returned nothing, building fallback")
+        clusters = []
+        for g in groups:
+            idx = g.get("indices", [])
+            members = [items[i] for i in idx if i < len(items)]
+            clusters.append({
+                "topic_ko": g.get("topic", ""),
+                "cluster_summary": "요약 실패",
+                "impact": "LOW",
+                "category": "release",
+                "members": [{"source": m["source"], "title_ko": m.get("title",""), "title_en": m.get("title",""), "source_url": m.get("source_url","")} for m in members]
+            })
+    return clusters
 
 def main():
     input_file = "raw_items.json"
     output_file = "summarized_items.json"
     
     if not os.path.exists(input_file):
-        print(f"Error: {input_file} not found.")
+        print("Error: %s not found." % input_file)
         return
 
     with open(input_file, "r", encoding="utf-8") as f:
@@ -124,55 +148,29 @@ def main():
     try:
         client_type, client = get_llm_client()
     except ValueError as e:
-        print(f"Error: {e}")
+        print("Error: %s" % e)
         return
 
     model = os.getenv("LLM_MODEL", "gpt-4o")
 
-    print(f"Clustering {len(items)} items by topic...")
+    print("Clustering %d items by topic..." % len(items))
     groups = cluster_items(items, client_type, client, model)
-    print(f"Found {len(groups)} clusters")
+    print("Found %d clusters" % len(groups))
 
-    clusters = []
-    for g in groups:
-        result = summarize_cluster(items, g, client_type, client, model)
-        if result:
-            category = "release"
-            for idx in g.get("indices", []):
-                if idx < len(items):
-                    cat = items[idx].get("category", "")
-                    if cat == "pricing":
-                        category = "pricing"
-                    elif cat == "policy" and category != "pricing":
-                        category = "policy"
-            result["category"] = category
-            clusters.append(result)
-            print(f"  [{result.get('impact','?')}] {result.get('topic_ko','')[:40]}")
+    print("Translating + summarizing all clusters in one request...")
+    clusters = translate_and_summarize_all(items, groups, client_type, client, model)
 
     clusters.sort(key=lambda c: {"HIGH": 0, "MED": 1, "LOW": 2}.get(c.get("impact", "LOW"), 3))
 
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(clusters, f, ensure_ascii=False, indent=2)
-    print(f"Done. {len(clusters)} clusters → {output_file}.")
+    print("Done. %d clusters -> %s." % (len(clusters), output_file))
 
 def summarize(raw_items: list[dict], config: dict | None = None) -> list[dict]:
     client_type, client = get_llm_client()
     model = os.getenv("LLM_MODEL", "gpt-4o")
     groups = cluster_items(raw_items, client_type, client, model)
-    clusters = []
-    for g in groups:
-        result = summarize_cluster(raw_items, g, client_type, client, model)
-        if result:
-            category = "release"
-            for idx in g.get("indices", []):
-                if idx < len(raw_items):
-                    cat = raw_items[idx].get("category", "")
-                    if cat == "pricing":
-                        category = "pricing"
-                    elif cat == "policy" and category != "pricing":
-                        category = "policy"
-            result["category"] = category
-            clusters.append(result)
+    clusters = translate_and_summarize_all(raw_items, groups, client_type, client, model)
     clusters.sort(key=lambda c: {"HIGH": 0, "MED": 1, "LOW": 2}.get(c.get("impact", "LOW"), 3))
     return clusters
 
