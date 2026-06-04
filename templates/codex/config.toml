@@ -1,0 +1,40 @@
+# Codex CLI — recommended config for running in this harness.
+#
+# This is a REFERENCE template, not auto-loaded. Codex reads its config from
+# $CODEX_HOME/config.toml (default: ~/.codex/config.toml) and its project
+# instructions from AGENTS.md (this repo already ships a neutralized AGENTS.md
+# that works for both standalone and aimux runs). Your login/credentials live in
+# ~/.codex/auth.json — NOT here; keep secrets out of this file.
+#
+# Apply it in whichever way you prefer (nothing here is hardcoded for you):
+#   1) Merge the keys below into ~/.codex/config.toml, OR
+#   2) Save as a named profile  $CODEX_HOME/harness.config.toml  and launch with
+#        codex -p harness
+#      (in the roster:  codex | codex -p harness --model gpt-5.5), OR
+#   3) Pass the same values ad-hoc with repeated  -c key=value  flags.
+#
+# Replace <ABSOLUTE_PROJECT_PATH> with the real path of the project you launch in
+# (e.g. the output of `pwd`). Do not commit a machine-specific path back here.
+
+# Model the agent should use (adjust to a model your account exposes).
+model = "gpt-5.5"
+
+# Approval / sandbox. Two sane presets — pick one:
+#   interactive (default, safest): the model asks before non-trivial commands.
+#     The aimux dispatcher's risk-routing then lets the manager answer low-risk
+#     prompts and escalates high-risk ones to you.
+approval_policy = "on-request"
+sandbox_mode    = "workspace-write"
+#   autonomous worker (runs handoffs without stopping): set instead
+#     approval_policy = "never"
+#   — or launch via the harness with AWM_AUTO_APPROVE=1, which appends
+#     `--dangerously-bypass-approvals-and-sandbox` to codex panes for you.
+
+# Make sure the whole AGENTS.md brief is read (raise if your brief grows).
+project_doc_max_bytes = 32768
+
+# Trust the project dir so codex does not stop on a first-run trust prompt.
+# Codex trust is keyed by EXACT directory; a copied project (new path) needs its
+# own entry. (AWM_AUTO_APPROVE=1 sidesteps this by bypassing approvals entirely.)
+[projects."<ABSOLUTE_PROJECT_PATH>"]
+trust_level = "trusted"

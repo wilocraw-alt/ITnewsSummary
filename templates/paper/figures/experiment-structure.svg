@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="200" viewBox="0 0 720 200" font-family="sans-serif" font-size="14">
+  <style>.b{fill:#eef;stroke:#447;stroke-width:1.5;rx:6} .t{text-anchor:middle} .a{stroke:#447;stroke-width:1.5;marker-end:url(#m)}</style>
+  <defs><marker id="m" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#447"/></marker></defs>
+  <!-- EDIT: replace with the actual experiment design (inputs/conditions/process/measure/analyze). -->
+  <rect class="b" x="10"  y="70" width="120" height="60" rx="6"/><text class="t" x="70"  y="105">Inputs / Data</text>
+  <rect class="b" x="170" y="70" width="120" height="60" rx="6"/><text class="t" x="230" y="98">Conditions /</text><text class="t" x="230" y="116">Treatments</text>
+  <rect class="b" x="330" y="70" width="120" height="60" rx="6"/><text class="t" x="390" y="105">Procedure / Run</text>
+  <rect class="b" x="490" y="70" width="120" height="60" rx="6"/><text class="t" x="550" y="98">Measurements /</text><text class="t" x="550" y="116">Metrics</text>
+  <rect class="b" x="640" y="70" width="70"  height="60" rx="6"/><text class="t" x="675" y="105">Analysis</text>
+  <line class="a" x1="130" y1="100" x2="168" y2="100"/>
+  <line class="a" x1="290" y1="100" x2="328" y2="100"/>
+  <line class="a" x1="450" y1="100" x2="488" y2="100"/>
+  <line class="a" x1="610" y1="100" x2="638" y2="100"/>
+  <text class="t" x="360" y="30" font-size="16" font-weight="bold">Experiment structure (placeholder — edit to the real design)</text>
+</svg>

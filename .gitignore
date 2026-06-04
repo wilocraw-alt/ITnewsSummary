@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+AIMemory/
+output/
+raw_items.json
+summarized_items.json
+*.swp
+.DS_Store

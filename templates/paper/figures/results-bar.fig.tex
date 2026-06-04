@@ -1,0 +1,12 @@
+% Standalone bar chart. EDIT the coordinates with real measured values.
+\documentclass[border=4pt]{standalone}
+\usepackage{pgfplots}\pgfplotsset{compat=1.16}
+\begin{document}
+\begin{tikzpicture}
+\begin{axis}[ybar, width=10cm, height=6cm, ylabel={metric},
+   symbolic x coords={A,B,C}, xtick=data, nodes near coords, ymin=0,
+   bar width=18pt, enlarge x limits=0.3]
+\addplot coordinates {(A,3) (B,5) (C,4)};   % <- replace with real data
+\end{axis}
+\end{tikzpicture}
+\end{document}

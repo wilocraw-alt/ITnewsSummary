@@ -1,0 +1,55 @@
+sources:
+  - name: "OpenAI Blog"
+    url: "https://openai.com/news/rss.xml"
+    type: "rss"
+    tier: 1
+    region: "us"
+    category: "release"
+  - name: "Anthropic News"
+    url: "https://www.anthropic.com/news"
+    type: "html"
+    tier: 1
+    region: "us"
+    category: "release"
+  - name: "Google Cloud Blog"
+    url: "https://cloud.google.com/blog/rss.xml"
+    type: "rss"
+    tier: 1
+    region: "us"
+    category: "research"
+  - name: "Naver CLOVA Blog"
+    url: "https://blog.naver.com/clova_ai"
+    type: "html"
+    tier: 1
+    region: "kr"
+    category: "research"
+  - name: "The Verge AI"
+    url: "https://www.theverge.com/ai-artificial-intelligence/rss/index.xml"
+    type: "rss"
+    tier: 2
+    region: "us"
+    category: "media"
+  - name: "TechCrunch AI"
+    url: "https://techcrunch.com/category/artificial-intelligence/feed/"
+    type: "rss"
+    tier: 2
+    region: "us"
+    category: "media"
+  - name: "ETNews IT/AI"
+    url: "https://www.etnews.com/rss/fed/01"
+    type: "rss"
+    tier: 2
+    region: "kr"
+    category: "media"
+  - name: "OpenAI Pricing"
+    url: "https://openai.com/api/pricing/"
+    type: "html"
+    tier: 1
+    region: "us"
+    category: "pricing"
+  - name: "Reddit r/LocalLLaMA"
+    url: "https://www.reddit.com/r/LocalLLaMA/.rss"
+    type: "rss"
+    tier: 3
+    region: "us"
+    category: "community"

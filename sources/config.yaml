@@ -1,0 +1,24 @@
+llm:
+  provider: anthropic          # anthropic | openai
+  model: claude-haiku-4-5-20251001
+  api_key_env: ANTHROPIC_API_KEY
+  max_tokens: 1024
+  temperature: 0.3
+
+smtp:
+  host_env: SMTP_HOST          # resolved from .env at runtime
+  port_env: SMTP_PORT
+  user_env: SMTP_USER
+  password_env: SMTP_PASSWORD
+
+email:
+  recipients_env: EMAIL_RECIPIENTS   # comma-separated in .env
+
+schedule:
+  morning: "07:00"
+  evening: "18:00"
+  timezone: "Asia/Seoul"
+
+collector:
+  cutoff_hours: 24             # skip items older than this
+  max_content_chars: 2000      # truncate per-item content

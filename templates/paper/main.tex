@@ -1,0 +1,39 @@
+% Paper scaffold (builds to PDF and, via `make docx`, Word).
+% Results numbers come from the project's measured records (author-side; see
+% README.md) and are reported as MEASURED RESULTS — never name internal project
+% files/fields in the paper. Figures live in figures/ and are included WITHOUT
+% an extension so the PDF uses .pdf and the Word build uses .png.
+\documentclass[11pt]{article}
+
+\usepackage{geometry}\geometry{margin=1in}
+\usepackage{graphicx}  % include figures as \includegraphics{figures/<name>} (no extension)
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{amsmath}
+% Korean / mixed-script papers (xelatex): uncomment one of —
+% \usepackage{kotex}                 % or:
+% \usepackage{fontspec}\setmainfont{NanumMyeongjo}
+
+\title{\textbf{<TITLE>}}
+\author{<AUTHORS>}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+<150--250 words: the problem (plainly), the approach, the experiment, and
+headline measured results.>
+\end{abstract}
+
+\input{sections/introduction}
+\input{sections/background}
+\input{sections/method}
+\input{sections/results}
+\input{sections/discussion}
+\input{sections/conclusion}
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}
