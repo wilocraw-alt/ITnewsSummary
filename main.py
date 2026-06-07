@@ -59,22 +59,17 @@ def step_format(items: list[dict], period: str, date: datetime, out: Path) -> Pa
     try:
         from formatter import format_markdown, format_html
         md_content = format_markdown(items, period, date)
-
-        if not md_path.exists():
-            md_path.write_text(md_content, encoding="utf-8")
-            print(f"[main] format: wrote {md_path}")
+        md_path.write_text(md_content, encoding="utf-8")
+        print(f"[main] format: wrote {md_path}")
 
         html_content = format_html(items, period, date)
-        if not html_path.exists():
-            html_path.write_text(html_content, encoding="utf-8")
-            print(f"[main] format: wrote {html_path}")
+        html_path.write_text(html_content, encoding="utf-8")
+        print(f"[main] format: wrote {html_path}")
     except ImportError:
-        if not md_path.exists():
-            content = _minimal_markdown(items, period, date)
-            md_path.write_text(content, encoding="utf-8")
-            print(f"[main] format: wrote {md_path}")
-        elif not html_path.exists():
-            print("[main] format: skipping HTML (formatter not available)", file=sys.stderr)
+        content = _minimal_markdown(items, period, date)
+        md_path.write_text(content, encoding="utf-8")
+        print(f"[main] format: wrote {md_path}")
+        print("[main] format: skipping HTML (formatter not available)", file=sys.stderr)
 
     return md_path
 
