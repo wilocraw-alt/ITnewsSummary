@@ -7,7 +7,7 @@ sources:
     category: "release"
   - name: "Anthropic News"
     url: "https://www.anthropic.com/news"
-    type: "html"
+    type: "anthropic_news"
     tier: 1
     region: "us"
     category: "release"
@@ -53,3 +53,10 @@ sources:
     tier: 3
     region: "us"
     category: "community"
+  - name: "arca.live/ai언어모델로컬채널"
+    url: "https://arca.live/b/alpaca"
+    type: "board"
+    tier: 3
+    region: "kr"
+    category: "community"
+    top_n: 7

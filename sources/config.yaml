@@ -20,5 +20,6 @@ schedule:
   timezone: "Asia/Seoul"
 
 collector:
-  cutoff_hours: 24             # skip items older than this
+  cutoff_hours: 24             # skip RSS items older than this (hours)
+  max_age_days: 7              # drop any item older than this (days)
   max_content_chars: 2000      # truncate per-item content
