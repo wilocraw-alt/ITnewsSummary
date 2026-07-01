@@ -10,6 +10,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+import openai
 import yaml
 from dotenv import load_dotenv
 
@@ -45,6 +46,11 @@ def step_summarize(raw_items: list[dict], config: dict, out: Path) -> list[dict]
     except ImportError:
         print("[main] summarizer.py not found — passing raw items through", file=sys.stderr)
         items = raw_items
+    except (openai.AuthenticationError, openai.APIConnectionError):
+        print("[main] LLM 연결에 실패했습니다.", file=sys.stderr)
+        print("  ollama가 실행 중인지 확인하세요: `ollama serve`", file=sys.stderr)
+        print("  .env의 OPENAI_BASE_URL / OPENAI_API_KEY / LLM_MODEL을 확인하세요.", file=sys.stderr)
+        sys.exit(1)
 
     with open(summarized_path, "w", encoding="utf-8") as f:
         json.dump(items, f, ensure_ascii=False, indent=2)
@@ -145,6 +151,8 @@ def run(period: str, config: dict, date: datetime, sources_dir: str, output_base
         md_path = step_format(summ_items, period, date, out)
         step_archive(summ_items, period, date, out)
         step_send(md_path, period, date)
+    except SystemExit:
+        raise
     except BaseException:
         print("[main] ERROR: run failed — cache preserved for debugging", file=sys.stderr)
         raise

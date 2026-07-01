@@ -41,8 +41,14 @@ sources:
     tier: 2
     region: "kr"
     category: "media"
+  - name: "GeekNews"
+    url: "https://news.hada.io/rss/news"
+    type: "rss"
+    tier: 2
+    region: "kr"
+    category: "media"
   - name: "OpenAI Pricing"
-    url: "https://openai.com/api/pricing/"
+    url: "https://chatgpt.com/ko-KR/pricing/"
     type: "html"
     tier: 1
     region: "us"
@@ -56,6 +62,14 @@ sources:
   - name: "arca.live/ai언어모델로컬채널"
     url: "https://arca.live/b/alpaca"
     type: "board"
+    tier: 3
+    region: "kr"
+    category: "community"
+    top_n: 7
+  - name: "파이토치 한국 사용자모임"
+    url: "https://discuss.pytorch.kr/latest"
+    type: "board"
+    board_type: discourse
     tier: 3
     region: "kr"
     category: "community"

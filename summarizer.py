@@ -72,8 +72,16 @@ Return ONLY valid JSON array:
     return groups
 
 def _summarize_one_group(items, group, client_type, client, model):
-    idx = group.get("indices", [])
-    members = [items[i] for i in idx if i < len(items)]
+    raw_idx = group.get("indices", [])
+    idx = []
+    for i in raw_idx:
+        try:
+            n = int(i)
+        except (ValueError, TypeError):
+            continue
+        if 0 <= n < len(items):
+            idx.append(n)
+    members = [items[i] for i in idx]
     if not members:
         return None
     lines = []

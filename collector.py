@@ -19,6 +19,8 @@ from bs4 import BeautifulSoup
 CUTOFF_HOURS = 24
 MAX_AGE_DAYS = 7
 REQUEST_TIMEOUT = 15
+REQUEST_RETRIES = 3
+REQUEST_BACKOFF = [1, 2, 4]  # seconds between retries
 REQUEST_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (X11; Linux x86_64) "
@@ -27,6 +29,29 @@ REQUEST_HEADERS = {
     )
 }
 MAX_CONTENT_CHARS = 2000
+
+
+def _retry_get(url: str, timeout: int, headers: dict | None = None,
+               retries: int = REQUEST_RETRIES, backoff: list[int] | None = None) -> requests.Response | None:
+    """GET with exponential backoff retry. Returns response on success, None after final failure."""
+    if backoff is None:
+        backoff = REQUEST_BACKOFF
+    last_exc: Exception | None = None
+    for attempt in range(retries):
+        try:
+            resp = requests.get(url, timeout=timeout, headers=headers or REQUEST_HEADERS)
+            resp.raise_for_status()
+            return resp
+        except Exception as exc:
+            last_exc = exc
+            if attempt < retries - 1:
+                sleep = backoff[min(attempt, len(backoff) - 1)]
+                import time
+                time.sleep(sleep)
+    reason = str(last_exc).split("\n")[0] if last_exc else "unknown"
+    print(f"[collector] WARNING: {url} skipped after {retries} retries ({reason})", file=sys.stderr)
+    return None
+
 
 CATEGORY_KEYWORDS = {
     "pricing": ["price", "pricing", "cost", "subscription", "discount", "promo",
@@ -101,11 +126,8 @@ def fetch_rss(source: dict, cutoff: datetime) -> list[dict]:
 
 
 def fetch_http(source: dict) -> list[dict]:
-    try:
-        resp = requests.get(source["url"], timeout=REQUEST_TIMEOUT, headers=REQUEST_HEADERS)
-        resp.raise_for_status()
-    except Exception as exc:
-        print(f"[collector] HTTP fetch error for {source['name']}: {exc}", file=sys.stderr)
+    resp = _retry_get(source["url"], REQUEST_TIMEOUT)
+    if resp is None:
         return []
 
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -126,17 +148,14 @@ def fetch_http(source: dict) -> list[dict]:
     }]
 
 
-def fetch_board(source: dict) -> list[dict]:
-    """Parse a board/forum listing page into individual article items.
+def fetch_board_arca(source: dict) -> list[dict]:
+    """Parse an arca.live board listing page into individual article items.
 
     CSS pattern: each post is expected in an ``<a class="vrow column">``,
     with title, recommend count, view count, author, and published datetime.
     """
-    try:
-        resp = requests.get(source["url"], timeout=REQUEST_TIMEOUT, headers=REQUEST_HEADERS)
-        resp.raise_for_status()
-    except Exception as exc:
-        print(f"[collector] Board fetch error for {source['name']}: {exc}", file=sys.stderr)
+    resp = _retry_get(source["url"], REQUEST_TIMEOUT)
+    if resp is None:
         return []
 
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -219,6 +238,83 @@ def fetch_board(source: dict) -> list[dict]:
         _fetch_board_detail(item)
 
     return items
+
+
+def fetch_board_discourse(source: dict) -> list[dict]:
+    """Parse a Discourse forum via its /latest.json API.
+
+    Source URL should point to the forum root or /latest page;
+    the base is derived and ``/latest.json`` is fetched.
+    """
+    base = source["url"].rstrip("/")
+    if base.endswith("/latest"):
+        base = base[: -len("/latest")]
+    json_url = f"{base}/latest.json"
+
+    resp = _retry_get(json_url, REQUEST_TIMEOUT)
+    if resp is None:
+        return []
+
+    try:
+        data = resp.json()
+    except Exception as exc:
+        print(f"[collector] Discourse JSON parse error for {source['name']}: {exc}", file=sys.stderr)
+        return []
+
+    topics = data.get("topic_list", {}).get("topics", [])
+    if not topics:
+        print(f"[collector] No Discourse topics found for {source['name']}", file=sys.stderr)
+        return []
+
+    top_n = int(source.get("top_n", 7))
+    items: list[dict] = []
+    for topic in topics[:top_n]:
+        tid = topic.get("id")
+        slug = topic.get("slug", "")
+        title = (topic.get("title") or "").strip()
+        if not title or not tid:
+            continue
+
+        abs_url = f"{base}/t/{slug}/{tid}"
+        created = topic.get("created_at", "")
+        published_dt = None
+        if created:
+            try:
+                published_dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
+            except (ValueError, KeyError):
+                pass
+
+        recommend_count = topic.get("like_count", 0)
+        view_count = topic.get("views", 0)
+        reply_count = topic.get("reply_count", 0)
+
+        items.append({
+            "source": source["name"],
+            "source_tier": source.get("tier", 3),
+            "source_url": abs_url,
+            "title": title,
+            "content": "",
+            "published": published_dt.isoformat() if published_dt else datetime.now(timezone.utc).isoformat(),
+            "category": source.get("category", "community"),
+            "region": source.get("region", "kr"),
+            "language": source.get("language", "ko"),
+            "recommend_count": recommend_count,
+            "view_count": view_count,
+            "reply_count": reply_count,
+            "post_num": "",
+            "author": topic.get("posters", [{}])[0].get("description", "") if topic.get("posters") else "",
+            "board_category": "",
+        })
+
+    return items
+
+
+def fetch_board(source: dict) -> list[dict]:
+    """Dispatch to the correct board parser based on ``board_type``."""
+    board_type = source.get("board_type", "arca")
+    if board_type == "discourse":
+        return fetch_board_discourse(source)
+    return fetch_board_arca(source)
 
 
 def _fetch_board_detail(item: dict) -> None:
